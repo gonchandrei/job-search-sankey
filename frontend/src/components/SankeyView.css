@@ -3,11 +3,18 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 1rem 0;
+  box-sizing: border-box;
+  min-height: 0;
 }
 
 .sankey-header {
   padding: 1.5rem;
   border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
 }
 
 .sankey-header h2 {
@@ -40,25 +47,30 @@
 
 .sankey-container {
   padding: 1rem;
-  min-height: 600px;
+  flex: 1;
+  overflow: visible;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .sankey-legend {
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-top: 1px solid #e0e0e0;
   background-color: #f8f9fa;
+  flex-shrink: 0;
 }
 
 .sankey-legend h3 {
-  font-size: 16px;
+  font-size: 14px;
   color: #2c3e50;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
 }
 
 .legend-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .legend-item {
@@ -68,8 +80,8 @@
 }
 
 .legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
   border: 1px solid #ddd;
 }

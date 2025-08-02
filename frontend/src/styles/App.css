@@ -28,6 +28,8 @@
   display: flex;
   flex-direction: column;
   background-color: #f5f6fa;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .no-project {
