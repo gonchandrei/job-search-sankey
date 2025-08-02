@@ -3,13 +3,34 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
+  height: calc(100vh - 140px); /* Subtract header and navigation height */
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  width: fit-content; /* Adjust container to table width */
+  margin: 20px auto; /* Center the table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
+}
+
+.table-view.expanded {
+  width: fit-content; /* Keep container fitting content */
+  margin: 20px auto; /* Center the expanded table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
+  border-radius: 8px; /* Keep border radius */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Keep shadow */
+}
+
+.table-view.compact {
+  width: fit-content; /* Keep container fitting content */
+  margin: 20px auto; /* Center the table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -25,12 +46,80 @@
 }
 
 .table-container {
-  height: 600px;
-  padding: 1rem;
+  flex: 1;
+  padding: 0.5rem;
+  overflow: auto; /* Allow scrolling if needed */
+  min-height: 200px; /* Ensure minimum height for grid */
+}
+
+/* Ensure headers are always visible */
+.table-view .ag-header {
+  background-color: #f8f9fa !important;
+  border-bottom: 2px solid #dee2e6 !important;
+  min-height: 40px !important;
+  height: auto !important;
+}
+
+.table-view .ag-header-row {
+  min-height: 40px !important;
+  height: auto !important;
+}
+
+.table-view .ag-header-cell {
+  font-weight: 600 !important;
+  color: #495057 !important;
+  background-color: #f8f9fa !important;
+  border-right: 1px solid #dee2e6 !important;
+  min-height: 40px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 12px !important;
+}
+
+.table-view .ag-header-cell-text {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  line-height: 1.2 !important;
+}
+
+.table-view .ag-header-cell-label {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Ensure the grid fills the container properly */
+.table-container .ag-theme-alpine {
+  height: 100%;
+  width: 100%;
+}
+
+.table-view .ag-root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Force header visibility */
+.table-view .ag-header-viewport {
+  height: 40px !important;
+  min-height: 40px !important;
+  overflow: visible !important;
+}
+
+.table-view .ag-header-container {
+  height: 40px !important;
+  min-height: 40px !important;
 }
 
 .table-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-top: 1px solid #e0e0e0;
   display: flex;
   justify-content: space-between;
@@ -58,4 +147,115 @@
 /* Override AG-Grid cell padding for stage cells */
 .ag-cell.stage-cell {
   padding: 8px !important;
+}
+
+/* Button styles */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+/* Stage-specific colors */
+.stage-applied {
+  background-color: #17a2b8;
+}
+
+.stage-first-interview {
+  background-color: #007bff;
+}
+
+.stage-technical-interview {
+  background-color: #6610f2;
+}
+
+.stage-final-interview {
+  background-color: #e83e8c;
+}
+
+.stage-offer {
+  background-color: #28a745;
+}
+
+.stage-rejected {
+  background-color: #dc3545;
+}
+
+.stage-no-answer {
+  background-color: #6c757d;
+}
+
+/* AG Grid column width control */
+.table-view .ag-root-wrapper {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-center-cols-clipper {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-center-cols-viewport {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-header-row {
+  width: auto !important;
+}
+
+.table-view .ag-row {
+  width: auto !important;
+}
+
+/* Prevent column resizing */
+.table-view .ag-header-cell-resize {
+  display: none !important;
+}
+
+/* Date picker styles */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.ag-custom-component-popup {
+  z-index: 9999;
 }

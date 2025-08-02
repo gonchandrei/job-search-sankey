@@ -1,11 +1,11 @@
-Company,Position,Link,Applied,Screening,Phone Interview,Technical Interview,Onsite Interview,Final Interview,Offer,Rejected,Withdrawn,No Answer
-TechCorp,Senior Software Engineer,https://techcorp.com/careers/sse-001,2025-01-05,2025-01-10,2025-01-15,2025-01-20,2025-01-25,,,,,
-DataSoft,Machine Learning Engineer,https://datasoft.io/jobs/mle-2025,2025-01-08,2025-01-12,2025-01-18,2025-01-22,,,,,2025-01-26,
-CloudBase,DevOps Engineer,https://cloudbase.com/positions/devops,2025-01-10,2025-01-14,2025-01-19,,,,,,2025-01-24,
-AI Innovations,Data Scientist,https://ai-innovations.com/careers,2025-01-12,2025-01-16,2025-01-21,2025-01-26,2025-01-30,2025-02-02,2025-02-05,,,
-StartupXYZ,Full Stack Developer,https://startupxyz.com/join-us,2025-01-15,2025-01-18,,,,,,,2025-01-22,
-BigTech Inc,Software Architect,https://bigtech.com/careers/architect,2025-01-18,2025-01-22,2025-01-27,2025-02-01,2025-02-05,2025-02-08,,,2025-02-10,
-FinanceApp,Backend Developer,https://financeapp.com/jobs,2025-01-20,,,,,,,,,,2025-01-30
-WebCo,Frontend Engineer,https://webco.com/careers/fe-2025,2025-01-22,2025-01-26,2025-01-30,2025-02-03,2025-02-07,,,,2025-02-09,
-MobileFirst,iOS Developer,https://mobilefirst.com/positions,2025-01-25,2025-01-29,2025-02-02,,,,,2025-02-05,,
-GameStudio,Game Developer,https://gamestudio.com/join,2025-01-28,2025-02-01,2025-02-05,2025-02-09,2025-02-12,2025-02-15,2025-02-18,,,
+Company,Position,Link,Applied,First Interview,Technical Interview,Final Interview,Offer,Rejected,No Answer
+TechCorp,Senior Software Engineer,https://techcorp.com/careers/sse-001,2025-01-05,2025-01-10,2025-01-20,2025-01-25,,,
+DataSoft,Machine Learning Engineer,https://datasoft.io/jobs/mle-2025,2025-01-08,2025-01-12,2025-01-18,,,,2025-01-26
+CloudBase,DevOps Engineer,https://cloudbase.com/positions/devops,2025-01-10,2025-01-14,2025-01-19,,,2025-01-24,
+AI Innovations,Data Scientist,https://ai-innovations.com/careers,2025-01-12,2025-01-16,2025-01-26,2025-02-02,2025-02-05,,
+StartupXYZ,Full Stack Developer,https://startupxyz.com/join-us,2025-01-15,2025-01-18,,,,,2025-01-22
+BigTech Inc,Software Architect,https://bigtech.com/careers/architect,2025-01-18,2025-01-22,2025-02-01,2025-02-08,,2025-02-10,
+FinanceApp,Backend Developer,https://financeapp.com/jobs,2025-01-20,,,,,,2025-01-30
+WebCo,Frontend Engineer,https://webco.com/careers/fe-2025,2025-01-22,2025-01-26,2025-02-03,2025-02-07,,2025-02-09,
+MobileFirst,iOS Developer,https://mobilefirst.com/positions,2025-01-25,2025-01-29,2025-02-02,,,2025-02-05,
+GameStudio,Game Developer,https://gamestudio.com/join,2025-01-28,2025-02-01,2025-02-09,2025-02-15,2025-02-18,,
