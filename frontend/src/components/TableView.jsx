@@ -19,6 +19,7 @@ const DateEditor = React.forwardRef((props, ref) => {
       return new Date();
     }
   });
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (props.value) {
@@ -30,28 +31,17 @@ const DateEditor = React.forwardRef((props, ref) => {
     }
   }, [props.value]);
 
+  // Auto-open the date picker when the editor starts
+  useEffect(() => {
+    setIsOpen(true);
+  }, []);
+
   // Expose getValue method for AG-Grid
   React.useImperativeHandle(ref, () => ({
     getValue: () => {
-      if (!props.value && selectedDate) {
-        // Return current date if no original value
-        return selectedDate.toISOString().split('T')[0];
-      }
-      return props.value || selectedDate?.toISOString().split('T')[0];
+      return selectedDate?.toISOString().split('T')[0];
     }
   }));
-
-  // Set current date immediately when editor starts for empty cells
-  React.useEffect(() => {
-    if (!props.value) {
-      const currentDate = new Date();
-      const formattedDate = currentDate.toISOString().split('T')[0];
-      // Use requestAnimationFrame to ensure the cell is ready
-      requestAnimationFrame(() => {
-        props.setValue(formattedDate);
-      });
-    }
-  }, [props.value]);
 
   return (
     <div className="date-editor-wrapper">
@@ -63,20 +53,18 @@ const DateEditor = React.forwardRef((props, ref) => {
             const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
             props.setValue(formattedDate);
             props.stopEditing();
-            props.api.stopEditing();
           }
         }}
-        onCalendarOpen={() => {
-          // When calendar opens on empty cell, immediately set current date
-          if (!props.value) {
-            const currentDate = new Date();
-            const formattedDate = currentDate.toISOString().split('T')[0];
-            props.setValue(formattedDate);
-          }
+        onClickOutside={() => {
+          props.stopEditing();
         }}
         dateFormat="yyyy-MM-dd"
-        inline
-        popperPlacement="bottom-start"
+        open={isOpen}
+        onCalendarClose={() => {
+          setIsOpen(false);
+          props.stopEditing();
+        }}
+        popperPlacement="auto"
         popperModifiers={[
           {
             name: 'offset',
@@ -84,8 +72,23 @@ const DateEditor = React.forwardRef((props, ref) => {
               offset: [0, 8],
             },
           },
+          {
+            name: 'flip',
+            options: {
+              fallbackPlacements: ['bottom-start', 'top-start', 'bottom-end', 'top-end'],
+            },
+          },
+          {
+            name: 'preventOverflow',
+            options: {
+              boundary: 'viewport',
+              altBoundary: true,
+              padding: 8,
+            },
+          },
         ]}
         calendarClassName="ag-custom-component-popup"
+        customInput={<input style={{ width: '100%', border: 'none', outline: 'none' }} />}
       />
     </div>
   );
@@ -107,8 +110,14 @@ const LinkRenderer = (props) => {
   );
 };
 
-// Common stage names for quick access
+// Common stage names for quick access (No Answer removed from table view)
 const COMMON_STAGES = [
+  'Applied', 'First Interview', 'Technical Interview', 
+  'Final Interview', 'Offer', 'Rejected'
+];
+
+// All stages including No Answer for Sankey diagram
+const ALL_STAGES = [
   'Applied', 'First Interview', 'Technical Interview', 
   'Final Interview', 'Offer', 'Rejected', 'No Answer'
 ];
@@ -117,18 +126,14 @@ function TableView({ project }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedView, setExpandedView] = useState(false); // Changed to false for compact as default
-  const [editingMode, setEditingMode] = useState(false); // Track if we're in editing mode
-  const [unsavedChanges, setUnsavedChanges] = useState({}); // Track unsaved changes
-  const [selectedRows, setSelectedRows] = useState([]); // Track selected rows
   const gridRef = useRef(null);
 
   // Stage columns configuration
   const stageColumns = COMMON_STAGES.map(stage => ({
     field: stage.toLowerCase().replace(/\s+/g, '_'),
     headerName: stage,
-    editable: editingMode,
+    editable: true,
     cellEditor: DateEditor,
-    width: 140, // Fixed optimal width for stage dates
     cellClass: params => {
       const value = params.value;
       if (value) {
@@ -166,13 +171,7 @@ function TableView({ project }) {
       }
       
       params.data.stages = stages;
-      
-      // Track changes instead of auto-saving
-      if (editingMode) {
-        const companyChanges = unsavedChanges[params.data.id] || {};
-        companyChanges.stages = stages;
-        setUnsavedChanges({...unsavedChanges, [params.data.id]: companyChanges});
-      }
+      debouncedSaveStages(params.data.id, stages);
       return true;
     }
   }));
@@ -182,7 +181,6 @@ function TableView({ project }) {
     field: 'current_stage',
     headerName: 'Current Stage',
     editable: false,
-    width: 150, // Fixed optimal width for current stage display
     cellClass: params => {
       const stageName = params.value?.stage_name;
       if (stageName) {
@@ -194,6 +192,36 @@ function TableView({ project }) {
     valueGetter: params => {
       const stages = params.data.stages || [];
       if (stages.length === 0) return null;
+      
+      // Check if company has reached a terminal stage (Offer or Rejected)
+      const hasOffer = stages.some(s => s.stage_name === 'Offer');
+      const hasRejected = stages.some(s => s.stage_name === 'Rejected');
+      
+      // If neither Offer nor Rejected, and has other stages, it's "No Answer"
+      if (!hasOffer && !hasRejected && stages.length > 0) {
+        // Find the latest non-terminal stage
+        const nonTerminalStages = stages.filter(s => 
+          s.stage_name !== 'Offer' && s.stage_name !== 'Rejected' && s.stage_name !== 'No Answer'
+        );
+        
+        if (nonTerminalStages.length > 0) {
+          const sortedStages = nonTerminalStages.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB - dateA; // Newest first
+          });
+          
+          const latestStage = sortedStages[0];
+          // Check if it's been more than reasonable time since last update (e.g., 30 days)
+          const daysSinceLastUpdate = (new Date() - new Date(latestStage.date)) / (1000 * 60 * 60 * 24);
+          
+          if (daysSinceLastUpdate > 30) {
+            return { stage_name: 'No Answer', date: latestStage.date };
+          }
+          
+          return latestStage;
+        }
+      }
       
       // Find the latest stage based on date
       const sortedStages = stages.sort((a, b) => {
@@ -215,7 +243,6 @@ function TableView({ project }) {
     field: 'last_update',
     headerName: 'Last Update',
     editable: false,
-    width: 120,
     valueGetter: params => {
       const stages = params.data.stages || [];
       if (stages.length === 0) return '';
@@ -236,7 +263,6 @@ function TableView({ project }) {
       field: 'rowNumber',
       headerName: '#',
       editable: false,
-      width: 60,
       cellStyle: { 
         textAlign: 'center',
         fontWeight: 'bold',
@@ -253,42 +279,27 @@ function TableView({ project }) {
     {
       field: 'name',
       headerName: 'Company',
-      editable: editingMode,
+      editable: true,
       cellStyle: { fontWeight: 'bold' },
-      width: 200, // Fixed optimal width for company names
       onCellValueChanged: (params) => {
-        if (editingMode) {
-          const companyChanges = unsavedChanges[params.data.id] || {};
-          companyChanges.name = params.newValue;
-          setUnsavedChanges({...unsavedChanges, [params.data.id]: companyChanges});
-        }
+        debouncedSaveCompany(params.data.id, { name: params.newValue });
       }
     },
     {
       field: 'position',
       headerName: 'Position',
-      editable: editingMode,
-      width: 250, // Fixed optimal width for position titles
+      editable: true,
       onCellValueChanged: (params) => {
-        if (editingMode) {
-          const companyChanges = unsavedChanges[params.data.id] || {};
-          companyChanges.position = params.newValue;
-          setUnsavedChanges({...unsavedChanges, [params.data.id]: companyChanges});
-        }
+        debouncedSaveCompany(params.data.id, { position: params.newValue });
       }
     },
     {
       field: 'link',
       headerName: 'Link',
-      editable: editingMode,
+      editable: true,
       cellRenderer: LinkRenderer,
-      width: 80, // Fixed optimal width for "Open" links
       onCellValueChanged: (params) => {
-        if (editingMode) {
-          const companyChanges = unsavedChanges[params.data.id] || {};
-          companyChanges.link = params.newValue;
-          setUnsavedChanges({...unsavedChanges, [params.data.id]: companyChanges});
-        }
+        debouncedSaveCompany(params.data.id, { link: params.newValue });
       }
     },
     // Conditionally include columns based on view
@@ -307,12 +318,12 @@ function TableView({ project }) {
   const defaultColDef = {
     sortable: false, // Disable sorting for all columns
     filter: false, // Disable filter menus for all columns
-    resizable: false, // Make columns non-adjustable
+    resizable: true, // Allow column resizing
     suppressSizeToFit: true, // Prevent auto-fitting to container
     autoHeaderHeight: false, // Disable auto header height
     headerHeight: 40, // Fixed header height
     flex: 0, // Don't use flex sizing
-    minWidth: 80, // Reduced minimum width
+    minWidth: 80, // Minimum width
     suppressMenu: true, // Disable column menu (three dots)
   };
 
@@ -388,8 +399,10 @@ function TableView({ project }) {
         }
       }
       
-      // Update or create stages
+      // Update or create stages (excluding No Answer as it's computed)
       for (const stage of stages) {
+        if (stage.stage_name === 'No Answer') continue; // Skip No Answer stages
+        
         const existingStage = currentStages.find(s => s.stage_name === stage.stage_name);
         if (existingStage) {
           // Update existing stage
@@ -412,35 +425,8 @@ function TableView({ project }) {
     }
   };
 
-  // Manual save all changes
-  const saveAllChanges = async () => {
-    try {
-      for (const [companyId, changes] of Object.entries(unsavedChanges)) {
-        // Save company data changes
-        if (changes.name || changes.position || changes.link) {
-          const updates = {};
-          if (changes.name !== undefined) updates.name = changes.name;
-          if (changes.position !== undefined) updates.position = changes.position;
-          if (changes.link !== undefined) updates.link = changes.link;
-          await saveCompany(companyId, updates);
-        }
-        
-        // Save stages changes
-        if (changes.stages) {
-          await saveStages(companyId, changes.stages);
-        }
-      }
-      
-      setUnsavedChanges({});
-      setEditingMode(false);
-      setExpandedView(false); // Return to compact view after save
-      setSelectedRows([]); // Clear selection
-      toast.success('All changes saved successfully');
-      await loadCompanies(); // Refresh data
-    } catch (error) {
-      toast.error('Failed to save some changes');
-    }
-  };
+  const debouncedSaveCompany = useCallback(debounce(saveCompany, 1000), []);
+  const debouncedSaveStages = useCallback(debounce(saveStages, 1000), []);
 
   const handleAddCompany = async () => {
     try {
@@ -505,56 +491,19 @@ function TableView({ project }) {
       <div className="table-header">
         <h2>{project.name} - Companies</h2>
         <div className="table-actions">
-          {editingMode ? (
-            <>
-              <button 
-                onClick={saveAllChanges} 
-                className="btn btn-success"
-                title="Save all changes and return to compact view"
-              >
-                💾 Save
-              </button>
-              <button 
-                onClick={() => {
-                  if (Object.keys(unsavedChanges).length > 0) {
-                    if (!window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
-                      return;
-                    }
-                  }
-                  setEditingMode(false);
-                  setExpandedView(false);
-                  setUnsavedChanges({});
-                  setSelectedRows([]); // Clear selection
-                  loadCompanies(); // Reload to discard changes
-                }} 
-                className="btn btn-secondary"
-                title="Cancel editing and discard changes"
-              >
-                ✖️ Cancel
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => {
-                setEditingMode(true);
-                setExpandedView(true);
-              }} 
-              className="btn btn-secondary"
-              title="Edit companies in expanded view"
-            >
-              ✏️ Edit
-            </button>
-          )}
-          {editingMode && (
-            <button onClick={handleAddCompany} className="btn btn-primary">
-              Add Company
-            </button>
-          )}
-          {editingMode && selectedRows.length > 0 && (
-            <button onClick={handleDeleteCompany} className="btn btn-danger">
-              Delete Selected ({selectedRows.length})
-            </button>
-          )}
+          <button 
+            onClick={() => setExpandedView(!expandedView)} 
+            className="btn btn-secondary"
+            title={expandedView ? "Switch to compact view" : "Switch to full view"}
+          >
+            {expandedView ? '📊 Compact View' : '📈 Full View'}
+          </button>
+          <button onClick={handleAddCompany} className="btn btn-primary">
+            Add Company
+          </button>
+          <button onClick={handleDeleteCompany} className="btn btn-danger">
+            Delete Selected
+          </button>
         </div>
       </div>
       
@@ -568,33 +517,68 @@ function TableView({ project }) {
           rowSelection="multiple"
           animateRows={true}
           getRowId={params => params.data.id}
-          onSelectionChanged={(params) => {
-            const selectedNodes = params.api.getSelectedNodes();
-            setSelectedRows(selectedNodes.map(node => node.data));
+          domLayout="normal"
+          suppressHorizontalScroll={false}
+          suppressColumnVirtualisation={false}
+          enableBrowserTooltips={true}
+          onCellKeyDown={(params) => {
+            // Handle Delete key to remove dates
+            if (params.event.key === 'Delete' || params.event.key === 'Del') {
+              const { colDef, data, node } = params;
+              
+              // Check if this is a date column (stage column)
+              const isStageColumn = COMMON_STAGES.some(stage => 
+                colDef.field === stage.toLowerCase().replace(/\s+/g, '_')
+              );
+              
+              if (isStageColumn) {
+                // Find the stage name from the column field
+                const stageName = COMMON_STAGES.find(stage => 
+                  colDef.field === stage.toLowerCase().replace(/\s+/g, '_')
+                );
+                
+                if (stageName) {
+                  // Remove the stage date
+                  const stages = data.stages || [];
+                  const updatedStages = stages.filter(s => s.stage_name !== stageName);
+                  
+                  // Update the data
+                  data.stages = updatedStages;
+                  
+                  // Save the changes
+                  debouncedSaveStages(data.id, updatedStages);
+                  
+                  // Refresh the specific cell
+                  params.api.refreshCells({
+                    rowNodes: [node],
+                    columns: [colDef.field]
+                  });
+                  
+                  // Prevent default behavior
+                  params.event.preventDefault();
+                }
+              }
+            }
           }}
+
           onGridReady={(params) => {
-            // Auto-size columns to content for optimal width
+            // Auto-size columns to fit content and headers
             params.api.autoSizeAllColumns();
           }}
           onFirstDataRendered={(params) => {
-            // Also auto-size when data is first loaded
+            // Auto-size when data is first loaded
             params.api.autoSizeAllColumns();
           }}
           onGridSizeChanged={(params) => {
-            // Ensure columns resize when grid size changes
+            // Keep auto-sizing when grid changes
             params.api.autoSizeAllColumns();
           }}
-          suppressColumnVirtualisation={true}
         />
       </div>
       
       <div className="table-footer">
         <p>Total: {companies.length} companies</p>
-        <p className="hint">
-          {editingMode 
-            ? "Click on cells to edit. Remember to save your changes." 
-            : "Click 'Edit' to modify company information."}
-        </p>
+        <p className="hint">Click on cells to edit. Changes are saved automatically.</p>
       </div>
     </div>
   );

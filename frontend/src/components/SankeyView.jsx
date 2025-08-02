@@ -37,20 +37,26 @@ function SankeyView({ project }) {
   const sankeyData = useMemo(() => {
     // Build flow data from companies
     const flows = new Map(); // key: "source->target", value: count
-    const nodes = new Set(['Start']); // Track all unique nodes
+    const nodes = new Set(); // Track all unique nodes
 
     companies.forEach(company => {
       const stages = company.stages || [];
       if (stages.length === 0) return;
 
+      // Filter out any "No Answer" stages that might be in the database
+      const filteredStages = stages.filter(stage => stage.stage_name !== 'No Answer');
+      if (filteredStages.length === 0) return;
+
+      // Check if company has "Applied" stage - skip if not
+      const hasApplied = filteredStages.some(s => s.stage_name === 'Applied');
+      if (!hasApplied) return;
+
       // Sort stages by order
-      const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+      const sortedStages = [...filteredStages].sort((a, b) => a.order - b.order);
       
-      // Add flow from Start to first stage
+      // Add the first stage to nodes (should be Applied)
       const firstStage = sortedStages[0].stage_name;
       nodes.add(firstStage);
-      const startKey = `Start->${firstStage}`;
-      flows.set(startKey, (flows.get(startKey) || 0) + 1);
 
       // Add flows between consecutive stages
       for (let i = 0; i < sortedStages.length - 1; i++) {
@@ -61,10 +67,30 @@ function SankeyView({ project }) {
         const key = `${source}->${target}`;
         flows.set(key, (flows.get(key) || 0) + 1);
       }
+
+      // Check if this company should flow to "No Answer"
+      const hasOffer = filteredStages.some(s => s.stage_name === 'Offer');
+      const hasRejected = filteredStages.some(s => s.stage_name === 'Rejected');
+      
+      // If no Offer or Rejected, check if it's been more than 30 days since last stage
+      if (!hasOffer && !hasRejected && filteredStages.length > 0) {
+        const lastStage = sortedStages[sortedStages.length - 1];
+        const daysSinceLastUpdate = (new Date() - new Date(lastStage.date)) / (1000 * 60 * 60 * 24);
+        
+        if (daysSinceLastUpdate > 30) {
+          nodes.add('No Answer');
+          const noAnswerKey = `${lastStage.stage_name}->No Answer`;
+          flows.set(noAnswerKey, (flows.get(noAnswerKey) || 0) + 1);
+        }
+      }
     });
 
-    // Convert to Plotly format
-    const nodeList = Array.from(nodes);
+    // Define the desired stage order (same as table columns)
+    const stageOrder = ['Applied', 'First Interview', 'Technical Interview', 'Final Interview', 'Offer', 'Rejected', 'No Answer'];
+    
+    // Create nodeList in the exact order we want, including only nodes that exist
+    const nodeList = stageOrder.filter(stage => nodes.has(stage));
+    
     const nodeMap = new Map(nodeList.map((node, index) => [node, index]));
 
     const sources = [];
@@ -72,7 +98,26 @@ function SankeyView({ project }) {
     const values = [];
     const labels = [];
 
-    flows.forEach((count, key) => {
+    // Sort flows to ensure proper node ordering
+    const sortedFlows = Array.from(flows.entries()).sort((a, b) => {
+      const [keyA] = a;
+      const [keyB] = b;
+      const [sourceA, targetA] = keyA.split('->');
+      const [sourceB, targetB] = keyB.split('->');
+      
+      // Sort by source stage order first, then by target stage order
+      const sourceOrderA = stageOrder.indexOf(sourceA);
+      const sourceOrderB = stageOrder.indexOf(sourceB);
+      if (sourceOrderA !== sourceOrderB) {
+        return sourceOrderA - sourceOrderB;
+      }
+      
+      const targetOrderA = stageOrder.indexOf(targetA);
+      const targetOrderB = stageOrder.indexOf(targetB);
+      return targetOrderA - targetOrderB;
+    });
+
+    sortedFlows.forEach(([key, count]) => {
       const [source, target] = key.split('->');
       sources.push(nodeMap.get(source));
       targets.push(nodeMap.get(target));
@@ -82,7 +127,6 @@ function SankeyView({ project }) {
 
     // Create node colors
     const nodeColors = nodeList.map(node => {
-      if (node === 'Start') return '#95a5a6';
       return STAGE_COLORS[node] || '#7f8c8d';
     });
 
@@ -90,6 +134,7 @@ function SankeyView({ project }) {
       data: [{
         type: 'sankey',
         orientation: 'h',
+        arrangement: 'fixed',
         node: {
           pad: 15,
           thickness: 20,
@@ -97,20 +142,63 @@ function SankeyView({ project }) {
             color: 'black',
             width: 0.5
           },
+          x: nodeList.map((node) => {
+            // Explicitly position nodes based on stage order
+            const stageIndex = stageOrder.indexOf(node);
+            const maxIndex = stageOrder.length - 1;
+            return stageIndex / maxIndex;
+          }),
+          y: nodeList.map(() => 0.5),
           label: nodeList.map(node => {
-            if (node === 'Start') return `Start (${companies.length})`;
-            const count = companies.filter(c => 
-              c.stages?.some(s => s.stage_name === node)
-            ).length;
-            return `${node} (${count})`;
+            if (node === 'No Answer') {
+              // Count companies that qualify for "No Answer" status
+              const noAnswerCount = companies.filter(c => {
+                const stages = c.stages || [];
+                const filteredStages = stages.filter(s => s.stage_name !== 'No Answer');
+                const hasOffer = filteredStages.some(s => s.stage_name === 'Offer');
+                const hasRejected = filteredStages.some(s => s.stage_name === 'Rejected');
+                
+                if (!hasOffer && !hasRejected && filteredStages.length > 0) {
+                  const sortedStages = [...filteredStages].sort((a, b) => a.order - b.order);
+                  const lastStage = sortedStages[sortedStages.length - 1];
+                  const daysSinceLastUpdate = (new Date() - new Date(lastStage.date)) / (1000 * 60 * 60 * 24);
+                  return daysSinceLastUpdate > 30;
+                }
+                return false;
+              }).length;
+              return `${node} (${noAnswerCount})`;
+            } else {
+              const count = companies.filter(c => 
+                c.stages?.some(s => s.stage_name === node)
+              ).length;
+              return `${node} (${count})`;
+            }
           }),
           color: nodeColors,
           customdata: nodeList.map(node => {
-            if (node === 'Start') return companies.length;
-            const count = companies.filter(c => 
-              c.stages?.some(s => s.stage_name === node)
-            ).length;
-            return count;
+            if (node === 'No Answer') {
+              // Count companies that qualify for "No Answer" status
+              const noAnswerCount = companies.filter(c => {
+                const stages = c.stages || [];
+                const filteredStages = stages.filter(s => s.stage_name !== 'No Answer');
+                const hasOffer = filteredStages.some(s => s.stage_name === 'Offer');
+                const hasRejected = filteredStages.some(s => s.stage_name === 'Rejected');
+                
+                if (!hasOffer && !hasRejected && filteredStages.length > 0) {
+                  const sortedStages = [...filteredStages].sort((a, b) => a.order - b.order);
+                  const lastStage = sortedStages[sortedStages.length - 1];
+                  const daysSinceLastUpdate = (new Date() - new Date(lastStage.date)) / (1000 * 60 * 60 * 24);
+                  return daysSinceLastUpdate > 30;
+                }
+                return false;
+              }).length;
+              return noAnswerCount;
+            } else {
+              const count = companies.filter(c => 
+                c.stages?.some(s => s.stage_name === node)
+              ).length;
+              return count;
+            }
           }),
           hovertemplate: '%{label}<br>Total: %{customdata}<extra></extra>'
         },
