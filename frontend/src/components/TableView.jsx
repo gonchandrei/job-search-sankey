@@ -80,6 +80,7 @@ function TableView({ project }) {
   const [expandedView, setExpandedView] = useState(false); // Changed to false for compact as default
   const [editingMode, setEditingMode] = useState(false); // Track if we're in editing mode
   const [unsavedChanges, setUnsavedChanges] = useState({}); // Track unsaved changes
+  const [selectedRows, setSelectedRows] = useState([]); // Track selected rows
   const gridRef = useRef(null);
 
   // Stage columns configuration
@@ -188,16 +189,28 @@ function TableView({ project }) {
       });
       
       return sortedStages[0]?.date || '';
-    },
-    comparator: (valueA, valueB) => {
-      if (!valueA && !valueB) return 0;
-      if (!valueA) return 1; // Put empty values at the bottom
-      if (!valueB) return -1;
-      return new Date(valueA) - new Date(valueB); // Ascending order for AG-Grid (desc sort will reverse it)
     }
   };
 
   const columnDefs = [
+    {
+      field: 'rowNumber',
+      headerName: '#',
+      editable: false,
+      width: 60,
+      cellStyle: { 
+        textAlign: 'center',
+        fontWeight: 'bold',
+        color: '#6c757d'
+      },
+      valueGetter: (params) => {
+        return params.node.rowIndex + 1;
+      },
+      sortable: false,
+      filter: false,
+      suppressMenu: true,
+      pinned: 'left'
+    },
     {
       field: 'name',
       headerName: 'Company',
@@ -253,14 +266,15 @@ function TableView({ project }) {
   });
 
   const defaultColDef = {
-    sortable: true,
-    filter: true,
+    sortable: false, // Disable sorting for all columns
+    filter: false, // Disable filter menus for all columns
     resizable: false, // Make columns non-adjustable
     suppressSizeToFit: true, // Prevent auto-fitting to container
     autoHeaderHeight: false, // Disable auto header height
     headerHeight: 40, // Fixed header height
     flex: 0, // Don't use flex sizing
     minWidth: 80, // Reduced minimum width
+    suppressMenu: true, // Disable column menu (three dots)
   };
 
   // Load companies
@@ -275,14 +289,6 @@ function TableView({ project }) {
       setTimeout(() => {
         gridRef.current.api.refreshCells();
         gridRef.current.api.autoSizeAllColumns();
-        
-        // Apply sorting for compact view
-        if (!expandedView) {
-          gridRef.current.api.applyColumnState({
-            state: [{ colId: 'last_update', sort: 'desc' }],
-            defaultState: { sort: null }
-          });
-        }
       }, 100); // Small delay to ensure DOM updates
     }
   }, [expandedView]);
@@ -291,7 +297,28 @@ function TableView({ project }) {
     try {
       setLoading(true);
       const response = await companiesAPI.getByProject(project.id);
-      setCompanies(response.data);
+      
+      // Sort companies by last update date (newest first)
+      const sortedCompanies = response.data.sort((a, b) => {
+        const getLastUpdateDate = (company) => {
+          const stages = company.stages || [];
+          if (stages.length === 0) return new Date(0); // Very old date for companies with no stages
+          
+          const sortedStages = stages.sort((x, y) => {
+            const dateX = new Date(x.date);
+            const dateY = new Date(y.date);
+            return dateY - dateX; // Newest first
+          });
+          
+          return new Date(sortedStages[0].date);
+        };
+        
+        const dateA = getLastUpdateDate(a);
+        const dateB = getLastUpdateDate(b);
+        return dateB - dateA; // Newest first
+      });
+      
+      setCompanies(sortedCompanies);
     } catch (error) {
       toast.error('Failed to load companies');
     } finally {
@@ -368,6 +395,7 @@ function TableView({ project }) {
       setUnsavedChanges({});
       setEditingMode(false);
       setExpandedView(false); // Return to compact view after save
+      setSelectedRows([]); // Clear selection
       toast.success('All changes saved successfully');
       await loadCompanies(); // Refresh data
     } catch (error) {
@@ -376,20 +404,32 @@ function TableView({ project }) {
   };
 
   const handleAddCompany = async () => {
-    const companyName = window.prompt('Enter company name:');
-    if (!companyName || companyName.trim() === '') {
-      return;
-    }
-    
     try {
       const newCompany = {
-        name: companyName.trim(),
-        position: '',
+        name: 'New Company',
+        position: 'New Position',
         link: ''
       };
       const response = await companiesAPI.create(project.id, newCompany);
-      setCompanies([...companies, response.data]);
-      toast.success('Company added');
+      
+      // Automatically add "Applied" stage with current date
+      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const appliedStage = {
+        stage_name: 'Applied',
+        date: currentDate,
+        order: COMMON_STAGES.indexOf('Applied')
+      };
+      
+      try {
+        await stagesAPI.create(response.data.id, appliedStage);
+        // Reload companies to get the updated data with the new stage
+        await loadCompanies();
+        toast.success('Company added with Applied stage');
+      } catch (stageError) {
+        console.error('Failed to add Applied stage:', stageError);
+        setCompanies([...companies, response.data]);
+        toast.success('Company added (stage creation failed)');
+      }
     } catch (error) {
       toast.error('Failed to add company');
     }
@@ -445,6 +485,7 @@ function TableView({ project }) {
                   setEditingMode(false);
                   setExpandedView(false);
                   setUnsavedChanges({});
+                  setSelectedRows([]); // Clear selection
                   loadCompanies(); // Reload to discard changes
                 }} 
                 className="btn btn-secondary"
@@ -465,12 +506,16 @@ function TableView({ project }) {
               ✏️ Edit
             </button>
           )}
-          <button onClick={handleAddCompany} className="btn btn-primary">
-            Add Company
-          </button>
-          <button onClick={handleDeleteCompany} className="btn btn-danger">
-            Delete Selected
-          </button>
+          {editingMode && (
+            <button onClick={handleAddCompany} className="btn btn-primary">
+              Add Company
+            </button>
+          )}
+          {editingMode && selectedRows.length > 0 && (
+            <button onClick={handleDeleteCompany} className="btn btn-danger">
+              Delete Selected ({selectedRows.length})
+            </button>
+          )}
         </div>
       </div>
       
@@ -484,17 +529,13 @@ function TableView({ project }) {
           rowSelection="multiple"
           animateRows={true}
           getRowId={params => params.data.id}
+          onSelectionChanged={(params) => {
+            const selectedNodes = params.api.getSelectedNodes();
+            setSelectedRows(selectedNodes.map(node => node.data));
+          }}
           onGridReady={(params) => {
             // Auto-size columns to content for optimal width
             params.api.autoSizeAllColumns();
-            
-            // Set default sort by last update (newest first)
-            if (!expandedView) {
-              params.api.applyColumnState({
-                state: [{ colId: 'last_update', sort: 'desc' }],
-                defaultState: { sort: null }
-              });
-            }
           }}
           onFirstDataRendered={(params) => {
             // Also auto-size when data is first loaded
