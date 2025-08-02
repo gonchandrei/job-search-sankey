@@ -38,6 +38,22 @@ const DateEditor = React.forwardRef((props, ref) => {
   );
 });
 
+// Custom link renderer component for AG-Grid
+const LinkRenderer = (props) => {
+  if (!props.value) return '';
+  
+  return (
+    <a 
+      href={props.value} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      style={{ color: '#007bff', textDecoration: 'underline', cursor: 'pointer' }}
+    >
+      Open
+    </a>
+  );
+};
+
 // Common stage names for quick access
 const COMMON_STAGES = [
   'Applied', 'First Interview', 'Technical Interview', 
@@ -47,7 +63,7 @@ const COMMON_STAGES = [
 function TableView({ project }) {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedView, setExpandedView] = useState(false);
+  const [expandedView, setExpandedView] = useState(true);
   const gridRef = useRef(null);
 
   // Stage columns configuration
@@ -164,19 +180,7 @@ function TableView({ project }) {
       field: 'link',
       headerName: 'Link',
       editable: true,
-      cellRenderer: params => {
-        if (!params.value) return '';
-        
-        const link = document.createElement('a');
-        link.href = params.value;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.textContent = 'Open';
-        link.style.color = '#007bff';
-        link.style.textDecoration = 'underline';
-        
-        return link;
-      },
+      cellRenderer: LinkRenderer,
       onCellValueChanged: (params) => {
         debouncedSaveCompany(params.data.id, { link: params.newValue });
       }
@@ -301,7 +305,7 @@ function TableView({ project }) {
   }
 
   return (
-    <div className="table-view">
+    <div className={`table-view ${expandedView ? 'expanded' : 'compact'}`}>
       <div className="table-header">
         <h2>{project.name} - Companies</h2>
         <div className="table-actions">
@@ -310,7 +314,7 @@ function TableView({ project }) {
             className="btn btn-secondary"
             title={expandedView ? "Show current stage only" : "Show all stages"}
           >
-            {expandedView ? '📊 Collapse View' : '📈 Expand View'}
+            {expandedView ? '📊 Compact View' : '📈 Full View'}
           </button>
           <button onClick={handleAddCompany} className="btn btn-primary">
             Add Company

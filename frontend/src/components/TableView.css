@@ -3,13 +3,30 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
+  height: calc(100vh - 140px); /* Subtract header and navigation height */
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.table-view.expanded {
+  max-width: 100%;
+  margin: 20px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.table-view.compact {
+  max-width: 1200px;
+  margin: 20px auto;
+  min-width: 800px;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -25,12 +42,13 @@
 }
 
 .table-container {
-  height: 600px;
-  padding: 1rem;
+  flex: 1;
+  padding: 0.5rem;
+  overflow: hidden;
 }
 
 .table-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-top: 1px solid #e0e0e0;
   display: flex;
   justify-content: space-between;
