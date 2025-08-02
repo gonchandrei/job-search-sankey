@@ -119,21 +119,15 @@ Each stage has a distinct color:
 
 ### Importing Data
 
-The application supports two CSV formats:
+The application supports CSV import with the following format (see example_import.csv):
 
-**Format 1: Single Stage (like example_import.csv)**
 ```csv
-Stage,Company,Position,Link,Date
-Applied,Google,Software Engineer,https://careers.google.com,2025-01-15
-Phone Interview,Amazon,Data Scientist,https://amazon.jobs,2025-01-20
+Company,Position,Link,Applied,Screening,Phone Interview,Technical Interview,Onsite Interview,Final Interview,Offer,Rejected,Withdrawn,No Answer
+TechCorp,Senior Software Engineer,https://techcorp.com/careers/sse-001,2025-01-05,2025-01-10,2025-01-15,2025-01-20,2025-01-25,,,,,
+DataSoft,Machine Learning Engineer,https://datasoft.io/jobs/mle-2025,2025-01-08,2025-01-12,2025-01-18,2025-01-22,,,,,2025-01-26,
 ```
 
-**Format 2: Multiple Stages (recommended)**
-```csv
-Company,Position,Link,Applied,Phone Interview,Technical Interview,Offer
-Google,Software Engineer,https://careers.google.com,2025-01-15,2025-01-20,2025-01-25,
-Amazon,Data Scientist,https://amazon.jobs,2025-01-10,2025-01-15,,
-```
+Each column after Company, Position, and Link represents a stage in your application process. Enter dates when you reach each stage.
 
 **How to Import:**
 1. Click "Import CSV"

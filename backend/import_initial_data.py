@@ -33,19 +33,42 @@ def import_initial_data():
             db.session.add(company)
             db.session.flush()
             
-            # Create stage (using the Stage column as the final stage)
-            try:
-                date = pd.to_datetime(row['Date'], format='%B %d, %Y').date()
-            except:
-                date = None
-            
-            stage = Stage(
-                company_id=company.id,
-                stage_name=row['Stage'],
-                date=date,
-                order=0  # Single stage, so order is 0
-            )
-            db.session.add(stage)
+            # Handle stages - check if it's single stage format (old) or multi-stage format (new)
+            if 'Stage' in df.columns and 'Date' in df.columns:
+                # Old single stage format
+                try:
+                    date = pd.to_datetime(row['Date'], format='%B %d, %Y').date()
+                except:
+                    date = None
+                
+                stage = Stage(
+                    company_id=company.id,
+                    stage_name=row['Stage'],
+                    date=date,
+                    order=0  # Single stage, so order is 0
+                )
+                db.session.add(stage)
+            else:
+                # New multi-stage format
+                stage_columns = [col for col in df.columns if col not in ['Company', 'Position', 'Link']]
+                order = 0
+                
+                for col in stage_columns:
+                    if pd.notna(row[col]):
+                        # Parse date from the cell value
+                        try:
+                            date = pd.to_datetime(row[col], errors='coerce').date()
+                        except:
+                            date = None
+                        
+                        stage = Stage(
+                            company_id=company.id,
+                            stage_name=col,
+                            date=date,
+                            order=order
+                        )
+                        db.session.add(stage)
+                        order += 1
         
         db.session.commit()
         print(f"Successfully imported {len(df)} companies into project '{project.name}'")
