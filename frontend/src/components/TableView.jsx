@@ -72,6 +72,7 @@ function TableView({ project }) {
     headerName: stage,
     editable: true,
     cellEditor: DateEditor,
+    width: 140, // Fixed optimal width for stage dates
     cellClass: params => {
       const value = params.value;
       if (value) {
@@ -111,8 +112,7 @@ function TableView({ project }) {
       params.data.stages = stages;
       debouncedSaveStages(params.data.id, stages);
       return true;
-    },
-    hide: !expandedView
+    }
   }));
 
   // Current stage column for collapsed view
@@ -120,6 +120,7 @@ function TableView({ project }) {
     field: 'current_stage',
     headerName: 'Current Stage',
     editable: false,
+    width: 200, // Fixed optimal width for current stage display
     cellClass: params => {
       const stageName = params.value?.stage_name;
       if (stageName) {
@@ -154,8 +155,7 @@ function TableView({ project }) {
     valueFormatter: params => {
       if (!params.value) return '';
       return `${params.value.stage_name} (${params.value.date})`;
-    },
-    hide: expandedView
+    }
   };
 
   const columnDefs = [
@@ -164,6 +164,7 @@ function TableView({ project }) {
       headerName: 'Company',
       editable: true,
       cellStyle: { fontWeight: 'bold' },
+      width: 200, // Fixed optimal width for company names
       onCellValueChanged: (params) => {
         debouncedSaveCompany(params.data.id, { name: params.newValue });
       }
@@ -172,6 +173,7 @@ function TableView({ project }) {
       field: 'position',
       headerName: 'Position',
       editable: true,
+      width: 250, // Fixed optimal width for position titles
       onCellValueChanged: (params) => {
         debouncedSaveCompany(params.data.id, { position: params.newValue });
       }
@@ -181,25 +183,50 @@ function TableView({ project }) {
       headerName: 'Link',
       editable: true,
       cellRenderer: LinkRenderer,
+      width: 80, // Fixed optimal width for "Open" links
       onCellValueChanged: (params) => {
         debouncedSaveCompany(params.data.id, { link: params.newValue });
       }
     },
-    currentStageColumn,
-    ...stageColumns
+    // Conditionally include columns based on view
+    ...(expandedView ? stageColumns : [currentStageColumn])
   ];
+
+  // Debug logging
+  console.log('TableView render:', {
+    expandedView,
+    totalColumns: columnDefs.length,
+    stageColumnsCount: stageColumns.length,
+    showingStageColumns: expandedView,
+    columnHeaders: columnDefs.map(col => col.headerName)
+  });
 
   const defaultColDef = {
     sortable: true,
     filter: true,
-    resizable: true,
-    minWidth: 100,
+    resizable: false, // Make columns non-adjustable
+    suppressSizeToFit: true, // Prevent auto-fitting to container
+    autoHeaderHeight: false, // Disable auto header height
+    headerHeight: 40, // Fixed header height
+    flex: 0, // Don't use flex sizing
+    minWidth: 80, // Reduced minimum width
   };
 
   // Load companies
   useEffect(() => {
     loadCompanies();
   }, [project.id]);
+
+  // Handle view changes
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      // Refresh grid when view changes
+      setTimeout(() => {
+        gridRef.current.api.refreshCells();
+        gridRef.current.api.autoSizeAllColumns();
+      }, 100); // Small delay to ensure DOM updates
+    }
+  }, [expandedView]);
 
   const loadCompanies = async () => {
     try {
@@ -331,12 +358,23 @@ function TableView({ project }) {
           rowData={companies}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          headerHeight={40}
           rowSelection="multiple"
           animateRows={true}
           getRowId={params => params.data.id}
-          onGridReady={() => {
-            gridRef.current.api.sizeColumnsToFit();
+          onGridReady={(params) => {
+            // Auto-size columns to content for optimal width
+            params.api.autoSizeAllColumns();
           }}
+          onFirstDataRendered={(params) => {
+            // Also auto-size when data is first loaded
+            params.api.autoSizeAllColumns();
+          }}
+          onGridSizeChanged={(params) => {
+            // Ensure columns resize when grid size changes
+            params.api.autoSizeAllColumns();
+          }}
+          suppressColumnVirtualisation={true}
         />
       </div>
       

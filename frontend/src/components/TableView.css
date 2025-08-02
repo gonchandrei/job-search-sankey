@@ -7,19 +7,23 @@
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  width: fit-content; /* Adjust container to table width */
+  margin: 20px auto; /* Center the table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
 }
 
 .table-view.expanded {
-  max-width: 100%;
-  margin: 20px;
-  border-radius: 0;
-  box-shadow: none;
+  width: fit-content; /* Keep container fitting content */
+  margin: 20px auto; /* Center the expanded table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
+  border-radius: 8px; /* Keep border radius */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Keep shadow */
 }
 
 .table-view.compact {
-  max-width: 1200px;
-  margin: 20px auto;
-  min-width: 800px;
+  width: fit-content; /* Keep container fitting content */
+  margin: 20px auto; /* Center the table */
+  max-width: calc(100vw - 40px); /* Prevent overflow */
 }
 
 .table-header {
@@ -44,7 +48,74 @@
 .table-container {
   flex: 1;
   padding: 0.5rem;
-  overflow: hidden;
+  overflow: auto; /* Allow scrolling if needed */
+  min-height: 200px; /* Ensure minimum height for grid */
+}
+
+/* Ensure headers are always visible */
+.table-view .ag-header {
+  background-color: #f8f9fa !important;
+  border-bottom: 2px solid #dee2e6 !important;
+  min-height: 40px !important;
+  height: auto !important;
+}
+
+.table-view .ag-header-row {
+  min-height: 40px !important;
+  height: auto !important;
+}
+
+.table-view .ag-header-cell {
+  font-weight: 600 !important;
+  color: #495057 !important;
+  background-color: #f8f9fa !important;
+  border-right: 1px solid #dee2e6 !important;
+  min-height: 40px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 12px !important;
+}
+
+.table-view .ag-header-cell-text {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  line-height: 1.2 !important;
+}
+
+.table-view .ag-header-cell-label {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Ensure the grid fills the container properly */
+.table-container .ag-theme-alpine {
+  height: 100%;
+  width: 100%;
+}
+
+.table-view .ag-root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Force header visibility */
+.table-view .ag-header-viewport {
+  height: 40px !important;
+  min-height: 40px !important;
+  overflow: visible !important;
+}
+
+.table-view .ag-header-container {
+  height: 40px !important;
+  min-height: 40px !important;
 }
 
 .table-footer {
@@ -142,6 +213,35 @@
 
 .stage-no-answer {
   background-color: #6c757d;
+}
+
+/* AG Grid column width control */
+.table-view .ag-root-wrapper {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-center-cols-clipper {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-center-cols-viewport {
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.table-view .ag-header-row {
+  width: auto !important;
+}
+
+.table-view .ag-row {
+  width: auto !important;
+}
+
+/* Prevent column resizing */
+.table-view .ag-header-cell-resize {
+  display: none !important;
 }
 
 /* Date picker styles */
