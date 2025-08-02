@@ -5,16 +5,13 @@ import './SankeyView.css';
 
 // Stage colors
 const STAGE_COLORS = {
-  'Applied': '#3498db',
-  'Screening': '#9b59b6',
-  'Phone Interview': '#f39c12',
-  'Technical Interview': '#e67e22',
-  'Onsite Interview': '#16a085',
-  'Final Interview': '#8e44ad',
-  'Offer': '#27ae60',
-  'Rejected': '#e74c3c',
-  'Withdrawn': '#95a5a6',
-  'No Answer': '#7f8c8d'
+  'Applied': '#17a2b8',
+  'First Interview': '#007bff',
+  'Technical Interview': '#6610f2',
+  'Final Interview': '#e83e8c',
+  'Offer': '#28a745',
+  'Rejected': '#dc3545',
+  'No Answer': '#6c757d'
 };
 
 function SankeyView({ project }) {
@@ -100,7 +97,13 @@ function SankeyView({ project }) {
             color: 'black',
             width: 0.5
           },
-          label: nodeList,
+          label: nodeList.map(node => {
+            if (node === 'Start') return `Start (${companies.length})`;
+            const count = companies.filter(c => 
+              c.stages?.some(s => s.stage_name === node)
+            ).length;
+            return `${node} (${count})`;
+          }),
           color: nodeColors,
           customdata: nodeList.map(node => {
             if (node === 'Start') return companies.length;

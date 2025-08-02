@@ -249,3 +249,11 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# Database files - local only
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
