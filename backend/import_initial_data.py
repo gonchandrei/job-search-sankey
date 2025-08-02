@@ -18,7 +18,7 @@ def import_initial_data():
         db.session.commit()
         
         # Read the CSV file
-        csv_path = os.path.join(os.path.dirname(__file__), '..', '..', 'example_import.csv')
+        csv_path = os.path.join(os.path.dirname(__file__), '..', 'example_import.csv')
         df = pd.read_csv(csv_path)
         
         # Import each row
