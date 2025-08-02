@@ -259,3 +259,41 @@
 .ag-custom-component-popup {
   z-index: 9999;
 }
+
+/* Date editor styling */
+.date-editor-wrapper {
+  position: relative;
+  z-index: 9999;
+}
+
+.date-editor-wrapper .react-datepicker {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  margin-top: 4px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid #ccc !important;
+  background-color: white !important;
+  z-index: 10000 !important;
+}
+
+/* Ensure date picker displays properly */
+.ag-cell-inline-editing {
+  overflow: visible !important;
+}
+
+.ag-cell-edit-wrapper {
+  overflow: visible !important;
+}
+
+/* Center date cells vertically */
+.date-cell-centered {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.date-cell-centered.ag-cell {
+  line-height: normal !important;
+}
