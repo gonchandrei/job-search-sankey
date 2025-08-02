@@ -1,0 +1,25 @@
+.navigation {
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 2rem;
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-link {
+  padding: 1rem 0;
+  text-decoration: none;
+  color: #666;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #2c3e50;
+}
+
+.nav-link.active {
+  color: #2c3e50;
+  border-bottom-color: #3498db;
+}
