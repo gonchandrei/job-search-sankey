@@ -11,14 +11,45 @@ import './TableView.css';
 
 // Custom date editor component for AG-Grid
 const DateEditor = React.forwardRef((props, ref) => {
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Initialize with current date if no value exists
+    if (props.value) {
+      return new Date(props.value);
+    } else {
+      return new Date();
+    }
+  });
 
   useEffect(() => {
     if (props.value) {
       setSelectedDate(new Date(props.value));
     } else {
       // Default to current date when no value
-      setSelectedDate(new Date());
+      const currentDate = new Date();
+      setSelectedDate(currentDate);
+    }
+  }, [props.value]);
+
+  // Expose getValue method for AG-Grid
+  React.useImperativeHandle(ref, () => ({
+    getValue: () => {
+      if (!props.value && selectedDate) {
+        // Return current date if no original value
+        return selectedDate.toISOString().split('T')[0];
+      }
+      return props.value || selectedDate?.toISOString().split('T')[0];
+    }
+  }));
+
+  // Set current date immediately when editor starts for empty cells
+  React.useEffect(() => {
+    if (!props.value) {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().split('T')[0];
+      // Use requestAnimationFrame to ensure the cell is ready
+      requestAnimationFrame(() => {
+        props.setValue(formattedDate);
+      });
     }
   }, [props.value]);
 
@@ -29,9 +60,17 @@ const DateEditor = React.forwardRef((props, ref) => {
         onChange={(date) => {
           setSelectedDate(date);
           if (date) {
+            const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            props.setValue(formattedDate);
             props.stopEditing();
             props.api.stopEditing();
-            const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+          }
+        }}
+        onCalendarOpen={() => {
+          // When calendar opens on empty cell, immediately set current date
+          if (!props.value) {
+            const currentDate = new Date();
+            const formattedDate = currentDate.toISOString().split('T')[0];
             props.setValue(formattedDate);
           }
         }}
