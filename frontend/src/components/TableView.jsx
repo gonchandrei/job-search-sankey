@@ -147,9 +147,9 @@ function TableView({ project }) {
       const stageName = params.value?.stage_name;
       if (stageName) {
         const stageClass = stageName.toLowerCase().replace(/\s+/g, '-');
-        return `stage-cell stage-${stageClass}`;
+        return `stage-cell stage-${stageClass} stage-cell-centered`;
       }
-      return '';
+      return 'stage-cell-centered';
     },
     valueGetter: params => {
       const stages = params.data.stages || [];

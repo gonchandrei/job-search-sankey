@@ -297,3 +297,15 @@
 .date-cell-centered.ag-cell {
   line-height: normal !important;
 }
+
+/* Center stage cells vertically */
+.stage-cell-centered {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+.stage-cell-centered.ag-cell {
+  line-height: normal !important;
+}
