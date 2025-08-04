@@ -238,18 +238,25 @@ function SankeyView({ project }) {
             return 0.05 + (nonTerminalIndex * 0.75) / (totalNonTerminalStages - 1);
           }),
           y: nodeList.map((node) => {
-            // Position outcome nodes with increased margin between Offer and Rejected
-            if (node === 'Offer') {
-              return 0.05; // Very top position
+            // No Answer node at upper border
+            if (node === 'No Answer') {
+              return 0.05; // Upper border
             }
             if (node === 'Rejected') {
-              return 0.45; // Lower position with increased margin from Offer
+              return 0.5; // Middle position
             }
-            if (node === 'No Answer') {
-              return 0.95; // Very bottom position
+            // Interview nodes and Offer at lowest border
+            if (node === 'Offer') {
+              return 0.95; // Lowest border
+            }
+            if (node === 'First Interview') {
+              return 0.8; // Slightly lower
+            }
+            if (node === 'Technical Interview') {
+              return 0.88; // Slightly higher
             }
             if (node === 'Final Interview') {
-              return 0.6; // Positioned to avoid conflicts with terminal nodes
+              return 0.94; // Near lowest border
             }
             // Other nodes get centered position
             return 0.5;
