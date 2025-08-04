@@ -360,8 +360,12 @@ function SankeyView({ project }) {
             <span className="stat-value">
               {companies.filter(c => {
                 const stages = c.stages || [];
-                return stages.length > 0 && 
-                  !stages.some(s => ['Rejected', 'Withdrawn', 'No Answer', 'Offer'].includes(s.stage_name));
+                const interviewStages = ['First Interview', 'Technical Interview', 'Final Interview'];
+                
+                // Check if any of the company's stages are interview stages
+                return stages.some(s => interviewStages.includes(s.stage_name)) &&
+                       // And make sure they don't have terminal stages
+                       !stages.some(s => ['Rejected', 'Withdrawn', 'Offer'].includes(s.stage_name));
               }).length}
             </span>
           </div>
