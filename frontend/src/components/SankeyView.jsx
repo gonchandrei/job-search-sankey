@@ -243,11 +243,11 @@ function SankeyView({ project }) {
               return 0.05; // Upper border
             }
             if (node === 'Rejected') {
-              return 0.5; // Middle position
+              return 0.55; // Slightly lower than middle
             }
             // Interview nodes and Offer at lowest border
             if (node === 'Offer') {
-              return 0.95; // Lowest border
+              return 0.97; // Slightly lower
             }
             if (node === 'First Interview') {
               return 0.8; // Slightly lower
